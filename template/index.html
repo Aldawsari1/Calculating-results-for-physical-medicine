@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical QC</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background-color: #298e29;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        .header img {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            height: 50px;
+        }
+        .container {
+            padding: 20px;
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .input-group {
+            margin-bottom: 10px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .footer {
+            background-color: #298e29;
+            color: #fff;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Qualified Medical Physicist’s Annual Quality Control</h1>
+        <h2>Calculate Results</h2>
+        <img src="{{ url_for('static', filename='images/static/Picture1.png') }}" alt="the image" />
+    </div>
+    <div class="container">
+        <!-- Scout Prescription Accuracy -->
+        <div class="test-section">
+            <h3>Scout Prescription Accuracy</h3>
+            <div class="input-group">
+                <label for="scout_marker_position">Marker Position:</label>
+                <input type="number" id="scout_marker_position" step="0.01">
+            </div>
+            <div class="input-group">
+                <label for="scout_slice_position">Slice Position:</label>
+                <input type="number" id="scout_slice_position" step="0.01">
+            </div>
+            <div class="input-group">
+                <label for="scout_missalignment">Missalignment (mm):</label>
+                <input type="number" id="scout_missalignment" step="0.01">
+            </div>
+            <button onclick="calculateScoutPrescription()">Calculate</button>
+            <div class="result" id="scout_result"></div>
+        </div>
+
+        <!-- Alignment Light Accuracy -->
+        <div class="test-section">
+            <h3>Alignment Light Accuracy</h3>
+            <div class="input-group">
+                <label for="alignment_missalignment">Missalignment (mm):</label>
+                <input type="number" id="alignment_missalignment" step="0.01">
+            </div>
+            <button onclick="calculateAlignmentLight()">Calculate</button>
+            <div class="result" id="alignment_result"></div>
+        </div>
+
+        <!-- Table Travel Accuracy -->
+        <div class="test-section">
+            <h3>Table Travel Accuracy</h3>
+            <div class="input-group">
+                <label for="table_deviation">Deviation After Table Travel (mm):</label>
+                <input type="number" id="table_deviation" step="0.01">
+            </div>
+            <button onclick="calculateTableTravel()">Calculate</button>
+            <div class="result" id="table_result"></div>
+        </div>
+
+        <!-- CT Number Accuracy -->
+        <div class="test-section">
+            <h3>CT Number Accuracy</h3>
+            <div class="input-group">
+                <label for="ct_material">Material:</label>
+                <input type="text" id="ct_material">
+            </div>
+            <div class="input-group">
+                <label for="ct_value">CT Value (HU):</label>
+                <input type="number" id="ct_value" step="0.01">
+            </div>
+            <button onclick="calculateCTNumber()">Calculate</button>
+            <div class="result" id="ct_result"></div>
+        </div>
+
+        <!-- Low-Contrast Resolution -->
+        <div class="test-section">
+            <h3>Low-Contrast Resolution</h3>
+            <div class="input-group">
+                <label for="low_contrast_cnr">CNR:</label>
+                <input type="number" id="low_contrast_cnr" step="0.01">
+            </div>
+            <div class="input-group">
+                <label for="low_contrast_svd">SVD:</label>
+                <input type="number" id="low_contrast_svd" step="0.01">
+            </div>
+            <button onclick="calculateLowContrast()">Calculate</button>
+            <div class="result" id="low_contrast_result"></div>
+        </div>
+
+        <!-- High-Contrast Resolution -->
+        <div class="test-section">
+            <h3>High-Contrast Resolution</h3>
+            <div class="input-group">
+                <label for="high_contrast_resolution">Spatial Resolution (lp/cm):</label>
+                <input type="number" id="high_contrast_resolution" step="0.01">
+            </div>
+            <div class="input-group">
+                <label for="high_contrast_threshold">Threshold (lp/cm):</label>
+                <input type="number" id="high_contrast_threshold" step="0.01">
+            </div>
+            <button onclick="calculateHighContrast()">Calculate</button>
+            <div class="result" id="high_contrast_result"></div>
+        </div>
+
+        <!-- CT Number Uniformity -->
+        <div class="test-section">
+            <h3>CT Number Uniformity</h3>
+            <div class="input-group">
+                <label for="ct_uniformity_diff">Diff from Center (HU):</label>
+                <input type="number" id="ct_uniformity_diff" step="0.01">
+            </div>
+            <button onclick="calculateCTUniformity()">Calculate</button>
+            <div class="result" id="ct_uniformity_result"></div>
+        </div>
+    </div>
+    <div class="footer">
+        BY MUNIRA KHALID ALZIMAMI BIOMEDICAL PHYSICS 
+        <br>Designied and developed by SHAHAD ALDAWSARI 
+    </div>
+    <script>
+        async function sendData(endpoint, data) {
+            try {
+                const response = await fetch(`http://127.0.0.1:5000${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+                return response.json();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Error in sendData:", error);
+                return { error: error.message };
+            }
+        }
+        
+
+        function calculateScoutPrescription() {
+            const markerPosition = parseFloat(document.getElementById('scout_marker_position').value);
+            const slicePosition = parseFloat(document.getElementById('scout_slice_position').value);
+            const missalignment = parseFloat(document.getElementById('scout_missalignment').value);
+
+            sendData('/calculate', { test_type: "scout_prescription", marker_position: markerPosition, slice_position: slicePosition, missalignment })
+                .then(result => {
+                    document.getElementById('scout_result').innerText = `Result: ${result.result}`;
+                });
+        }
+
+        function calculateAlignmentLight() {
+            const missalignment = parseFloat(document.getElementById('alignment_missalignment').value);
+            sendData('/calculate', { test_type: "alignment_light", missalignment })
+                .then(result => {
+                    document.getElementById('alignment_result').innerText = `Result: ${result.result}`;
+                });
+        }
+
+        function calculateTableTravel() {
+            const deviation = parseFloat(document.getElementById('table_deviation').value);
+            sendData('/calculate', { test_type: "table_travel", deviation_after_table_travel: deviation })
+                .then(result => {
+                    document.getElementById('table_result').innerText = `Result: ${result.result}`;
+                });
+        }
+
+        function calculateCTNumber() {
+            const material = document.getElementById('ct_material').value;
+            const ctValue = parseFloat(document.getElementById('ct_value').value);
+            sendData('/calculate', { test_type: "ct_number", material, ct_value: ctValue })
+                .then(result => {
+                    document.getElementById('ct_result').innerText = `Result: ${result.result}`;
+                });
+        }
+
+        function calculateLowContrast() {
+            const cnr = parseFloat(document.getElementById('low_contrast_cnr').value);
+            const svd = parseFloat(document.getElementById('low_contrast_svd').value);
+            sendData('/calculate', { test_type: "low_contrast", cnr, svd })
+                .then(result => {
+                    document.getElementById('low_contrast_result').innerText = `Result: ${JSON.stringify(result.result)}`;
+                });
+        }
+
+        function calculateHighContrast() {
+            const spatialResolution = parseFloat(document.getElementById('high_contrast_resolution').value);
+            const threshold = parseFloat(document.getElementById('high_contrast_threshold').value);
+            sendData('/calculate', { test_type: "high_contrast", spatial_resolution: spatialResolution, threshold })
+                .then(result => {
+                    document.getElementById('high_contrast_result').innerText = `Result: ${result.result}`;
+                });
+        }
+
+        function calculateCTUniformity() {
+            const diffFromCenter = parseFloat(document.getElementById('ct_uniformity_diff').value);
+            sendData('/calculate', { test_type: "ct_uniformity", diff_from_center: diffFromCenter })
+                .then(result => {
+                    document.getElementById('ct_uniformity_result').innerText = `Result: ${result.result}`;
+                });
+        }
+    </script>
+</body>
+</html>
